@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" ng-app="financeApp">
+<html lang="en" ng-app="FinanceApp">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,7 +9,9 @@
     <style>
         body { font-family: Arial, sans-serif; }
         nav a { margin: 10px; text-decoration: none; padding: 5px; }
-        .active { font-weight: bold; color: blue; }
+        .active { font-weight: bold; color: green; }
+        .container { display: flex; justify-content: space-around; margin-top: 20px; }
+        .column { padding: 10px; border: 1px solid #ddd; width: 30%; text-align: center; }
     </style>
 </head>
 <body ng-controller="MainController">
@@ -20,10 +22,10 @@
     </nav>
     
     <div ng-view></div>
-
+    
     <script>
-        var app = angular.module('financeApp', ['ngRoute']);
-
+        var app = angular.module('FinanceApp', ['ngRoute']);
+        
         app.config(function($routeProvider) {
             $routeProvider
                 .when('/dashboard', {
@@ -38,59 +40,93 @@
                     templateUrl: 'income.html',
                     controller: 'IncomeController'
                 })
-                .otherwise({
-                    redirectTo: '/dashboard'
-                });
+                .otherwise({ redirectTo: '/dashboard' });
         });
-
+        
         app.controller('MainController', function($scope, $location) {
-            $scope.isActive = function(route) {
-                return route === $location.path();
+            $scope.isActive = function(viewLocation) {
+                return viewLocation === $location.path();
             };
         });
-
+        
         app.controller('DashboardController', function($scope) {
-            $scope.summary = {
-                totalIncome: 5000,
-                totalExpenses: 2000
+            $scope.loadSummary = function() {
+                $scope.totalIncome = parseFloat(localStorage.getItem('incomeTotal')) || 0;
+                $scope.totalExpenses = parseFloat(localStorage.getItem('expenseTotal')) || 0;
+                $scope.netBalance = $scope.totalIncome - $scope.totalExpenses;
             };
+            $scope.loadSummary();
         });
-
+        
         app.controller('ExpensesController', function($scope) {
-            $scope.expenses = [
-                { id: 1, description: 'Groceries', amount: 100 },
-                { id: 2, description: 'Rent', amount: 1200 }
-            ];
+            $scope.expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+            $scope.newExpense = {};
             
             $scope.addExpense = function() {
-                if ($scope.newExpense && $scope.newExpense.description && $scope.newExpense.amount) {
-                    $scope.expenses.push({
-                        id: $scope.expenses.length + 1,
-                        description: $scope.newExpense.description,
-                        amount: parseFloat($scope.newExpense.amount)
-                    });
+                if ($scope.newExpense.amount) {
+                    $scope.expenses.push($scope.newExpense);
+                    localStorage.setItem('expenses', JSON.stringify($scope.expenses));
+                    localStorage.setItem('expenseTotal', parseFloat(localStorage.getItem('expenseTotal') || 0) + parseFloat($scope.newExpense.amount));
                     $scope.newExpense = {};
                 }
             };
         });
-
+        
         app.controller('IncomeController', function($scope) {
-            $scope.income = [
-                { id: 1, source: 'Salary', amount: 3000 },
-                { id: 2, source: 'Freelance', amount: 2000 }
-            ];
+            $scope.income = JSON.parse(localStorage.getItem('income')) || [];
+            $scope.newIncome = {};
             
             $scope.addIncome = function() {
-                if ($scope.newIncome && $scope.newIncome.source && $scope.newIncome.amount) {
-                    $scope.income.push({
-                        id: $scope.income.length + 1,
-                        source: $scope.newIncome.source,
-                        amount: parseFloat($scope.newIncome.amount)
-                    });
+                if ($scope.newIncome.amount) {
+                    $scope.income.push($scope.newIncome);
+                    localStorage.setItem('income', JSON.stringify($scope.income));
+                    localStorage.setItem('incomeTotal', parseFloat(localStorage.getItem('incomeTotal') || 0) + parseFloat($scope.newIncome.amount));
                     $scope.newIncome = {};
                 }
             };
         });
+    </script>
+    
+    <script type="text/ng-template" id="dashboard.html">
+        <h2>Dashboard</h2>
+        <div class="container">
+            <div class="column">
+                <h3>Total Income</h3>
+                <p>${{ totalIncome }}</p>
+            </div>
+            <div class="column">
+                <h3>Total Expenses</h3>
+                <p>${{ totalExpenses }}</p>
+            </div>
+            <div class="column">
+                <h3>Net Balance</h3>
+                <p>${{ netBalance }}</p>
+            </div>
+        </div>
+    </script>
+    
+    <script type="text/ng-template" id="expenses.html">
+        <h2>Expenses</h2>
+        <form ng-submit="addExpense()">
+            <input type="text" ng-model="newExpense.description" placeholder="Description" required>
+            <input type="number" ng-model="newExpense.amount" placeholder="Amount" required>
+            <button type="submit">Add Expense</button>
+        </form>
+        <ul>
+            <li ng-repeat="expense in expenses">{{ expense.description }} - ${{ expense.amount }}</li>
+        </ul>
+    </script>
+    
+    <script type="text/ng-template" id="income.html">
+        <h2>Income</h2>
+        <form ng-submit="addIncome()">
+            <input type="text" ng-model="newIncome.description" placeholder="Description" required>
+            <input type="number" ng-model="newIncome.amount" placeholder="Amount" required>
+            <button type="submit">Add Income</button>
+        </form>
+        <ul>
+            <li ng-repeat="income in income">{{ income.description }} - ${{ income.amount }}</li>
+        </ul>
     </script>
 </body>
 </html>
