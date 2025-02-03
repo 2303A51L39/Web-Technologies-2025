@@ -6,73 +6,115 @@
     <title>Weather Dashboard</title>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .weather-container { margin-top: 20px; }
-        .favorites { margin-top: 20px; }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            margin: auto;
+        }
+        input {
+            padding: 10px;
+            width: 80%;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .weather-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #007BFF;
+            color: white;
+            border-radius: 10px;
+        }
+        .error {
+            color: red;
+        }
     </style>
 </head>
 <body ng-controller="WeatherController">
-    <h1>Weather Dashboard</h1>
-    <input type="text" ng-model="city" placeholder="Enter city name">
-    <button ng-click="getWeather()">Get Weather</button>
-    <p style="color:red;" ng-if="error">{{ error }}</p>
-    
-    <div class="weather-container" ng-if="weather">
-        <h2>{{ weather.name }}</h2>
-        <p>Temperature: {{ weather.main.temp }}°C</p>
-        <p>Humidity: {{ weather.main.humidity }}%</p>
-        <p>Condition: {{ weather.weather[0].description }}</p>
-        <button ng-click="addToFavorites(weather.name)">Add to Favorites</button>
-    </div>
-    
-    <div class="favorites" ng-if="favorites.length">
-        <h2>Favorite Cities</h2>
+    <div class="container">
+        <h1>Weather Dashboard</h1>
+        
+        <input type="text" ng-model="city" placeholder="Enter city name">
+        <button ng-click="getWeather()">Get Weather</button>
+        <button ng-click="addFavorite()">Add to Favorites</button>
+
+        <div class="weather-box" ng-if="weatherData">
+            <h2>{{ weatherData.location.name }}</h2>
+            <p>Temperature: {{ weatherData.current.temp_c }}°C</p>
+            <p>Humidity: {{ weatherData.current.humidity }}%</p>
+            <p>Condition: {{ weatherData.current.condition.text }}</p>
+        </div>
+
+        <p class="error" ng-if="error">{{ error }}</p>
+
+        <h3>Favorites</h3>
         <ul>
-            <li ng-repeat="fav in favorites | orderBy: 'toLowerCase()'">
-                <span ng-click="getWeather(fav)">{{ fav }}</span>
-                <button ng-click="removeFromFavorites(fav)">Remove</button>
+            <li ng-repeat="fav in favorites | orderBy: 'toString()'">
+                <button ng-click="getFavoriteWeather(fav)">{{ fav }}</button>
             </li>
         </ul>
     </div>
 
     <script>
-        angular.module('weatherApp', [])
-            .controller('WeatherController', function($scope, $http) {
-                $scope.apiKey = 'YOUR_API_KEY';
-                $scope.weather = null;
-                $scope.error = null;
-                $scope.favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        var app = angular.module('weatherApp', []);
 
-                $scope.getWeather = function(cityName) {
-                    let city = cityName || $scope.city;
-                    if (!city) return;
-                    
-                    let url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=metric&appid=${$scope.apiKey}`;
-                    
-                    $http.get(url).then(
-                        function(response) {
-                            $scope.weather = response.data;
-                            $scope.error = null;
-                        },
-                        function(error) {
-                            $scope.error = 'City not found or API error!';
-                            $scope.weather = null;
-                        }
-                    );
-                };
+        app.controller('WeatherController', function($scope, $http) {
+            $scope.city = '';
+            $scope.weatherData = null;
+            $scope.error = '';
+            $scope.favorites = [];
+
+            const API_KEY = '9647771a542d4e1e901104916250302 ';  // Replace with your WeatherAPI key
+
+            $scope.getWeather = function() {
+                if (!$scope.city) return;
                 
-                $scope.addToFavorites = function(city) {
-                    if (!$scope.favorites.includes(city)) {
-                        $scope.favorites.push(city);
-                        localStorage.setItem('favorites', JSON.stringify($scope.favorites));
+                let url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${$scope.city}&aqi=no`;
+
+                $http.get(url).then(
+                    function(response) {
+                        $scope.weatherData = response.data;
+                        $scope.error = '';
+                    },
+                    function(error) {
+                        $scope.weatherData = null;
+                        $scope.error = 'City not found. Please try again.';
                     }
-                };
-                
-                $scope.removeFromFavorites = function(city) {
-                    $scope.favorites = $scope.favorites.filter(fav => fav !== city);
-                    localStorage.setItem('favorites', JSON.stringify($scope.favorites));
-                };
-            });
+                );
+            };
+
+            $scope.addFavorite = function() {
+                if ($scope.city && !$scope.favorites.includes($scope.city)) {
+                    $scope.favorites.push($scope.city);
+                }
+            };
+
+            $scope.getFavoriteWeather = function(city) {
+                $scope.city = city;
+                $scope.getWeather();
+            };
+        });
     </script>
 </body>
 </html>
